@@ -1,0 +1,76 @@
+# BE - Users (srumec_users) 
+- Microservice pro uživatele 
+- Vlastní databáze 
+	- Jakákoliv podle výběru 
+- Nutnost rozběhat to v dockeru i s DB 
+- Modely 
+	- uživatel 
+		- UUID jako id
+		- login (email) 
+		- banned (tereoticky jako samostatný model -> důvod banu, čas, čas vypršení) 
+		- apod... 
+	- skupina 
+		- tereoticky, aby jsme měli aspoň více modelů 
+		- UUID
+		- uživatel může patřit do nějaké skupiny 
+		- aspoň náznak, třeba pak můžeme využít k nějakému group chatu 
+- Endpointy a komunikace 
+	- GET /user/me 
+		- získá informace o přihlášeném uživateli 
+	- GET /user/{id} 
+		- získá informace o jednom uživateli (nejspíš pro ostatní uživatele, takže skrýt nějaké informace, co se nehodí) 
+	- POST /user/bulk
+		- získá informace o více zvolených uživatelů
+			- request bude více UUID. vrátí detail těchto uživatelů
+	- PATCH (nebo POST) /user/{id}
+		- úprava informací o uživateli 
+	- POST /user/ban 
+		- zabanování uživatele 
+	- Případně další endpointy pokuď tě napadnou, nebo i endpointy na tu skupinu uživatelů
+
+# FE - Správce
+- Nutnost rozběhat to v dockeru
+- Přihlášení
+	- přes srumec_auth (POST /login)
+- Zobrazuje podezřelé události
+- Zobrazí detail události
+	- Líbilo by se mi i zobrazení mapy, kde ta událost je
+- Buď povolí události nebo zamítne, případně i zabanuje uživatele
+- Z BE dostaneš endpointy
+	- GET /event- získá všechny události
+	- GET /event/{id} - získá detail události
+	- POST /event/{id} - pošle rozhodnutí o události
+		- Bude uuid + atribut approved: boolean
+	- POST /user/ban/{id}
+		- pošle přímo na srumec_users 
+
+# BE - Správce
+- Microservice pro uživatele 
+	- Vlastní databáze 
+		- Jakákoliv podle výběru 
+	- Nutnost rozběhat to v dockeru i s DB 
+- Modely:
+	- Event
+		- UUID
+		- název
+		- popis
+		- lat + lng
+		- UUID uživatele
+- Endpointy
+	- PRO FE - **ENDPOINTY PŘÍMO NA TÉTO SERVICE**
+		- GET /event- získá všechny události
+			- Klasický výpis z DB
+		- GET /event/{id} - získá detail události
+			- Klasický výpis z DB
+		- POST /event/{id} - pošle rozhodnutí o události
+			- Bude uuid + atribut approved: boolean
+				- true -> pošleš na endpoint srumec_events, viz níže
+				- false -> vymažeš z db
+	- PRO Komunikaci mezi services
+		- **BUDE VYUŽIT RABBITMQ**
+			- **To nemusíš řešit, hlavní je aby ta zvolená technologie to podporovala. Tu implementaci pak vyřešíme společně**
+		- - **Odesílání zpráv
+			- -> pošle ten approved zpátky do hlavní db
+		- **Přijímaní zpráv
+			- z jiné service příjde event ke schválení a vloží se do db (čeká na schválení)
+
